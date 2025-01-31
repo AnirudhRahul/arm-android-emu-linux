@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  android-emulator:
+    build: .
+    environment:
+      - EMULATOR_CORES=2  # Default CPU core count
+      - EMULATOR_MEMORY=2048  # Default memory in MB
+    privileged: true
+    cap_add:
+      - ALL
