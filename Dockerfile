@@ -28,15 +28,13 @@ ENV PATH=$PATH:$JAVA_HOME/bin
 
 ###############################################################################
 # 2. Android SDK & Emulator Setup
+# Note: Files are mirrored because download links expire
 ###############################################################################
-# Clone mirrored Android SDK components
-RUN git clone https://github.com/AnirudhRahul/arm-android-emu-linux /tmp/android-repo && \
-    # Command line tools (original URL: https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip)
-    mkdir -p $ANDROID_HOME/cmdline-tools/tools && \
-    cp -r /tmp/android-repo/cmdline-tools/* $ANDROID_HOME/cmdline-tools/tools/ && \
-    # Emulator binary (original URL: https://ci.android.com/builds/submitted/11382468/emulator-linux_aarch64/latest/sdk-repo-linux_aarch64-emulator-11382468.zip)
-    cp -r /tmp/android-repo/emulator/* $ANDROID_HOME/ && \
-    rm -rf /tmp/android-repo
+# Command line tools (original URL: https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip)
+COPY arm-android-emu-linux/cmdline-tools $ANDROID_HOME/cmdline-tools/tools
+# Emulator binary (original URL: https://ci.android.com/builds/submitted/11382468/emulator-linux_aarch64/latest/sdk-repo-linux_aarch64-emulator-11382468.zip)
+COPY arm-android-emu-linux/emulator $ANDROID_HOME/
+
 
 # SDK packages
 RUN { echo "y"; yes; } | sdkmanager --sdk_root=$ANDROID_HOME --licenses && \
