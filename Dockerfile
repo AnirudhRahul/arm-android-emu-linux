@@ -15,8 +15,6 @@ ENV ANDROID_SDK_ROOT=$ANDROID_HOME
 # Core dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     openjdk-17-jdk \
-    wget \
-    unzip \
     qemu-system-arm \
     qemu-utils \
     ca-certificates \
@@ -37,7 +35,7 @@ COPY ./emulator $ANDROID_HOME/
 
 
 # SDK packages
-RUN { echo "y"; yes; } | sdkmanager --sdk_root=$ANDROID_HOME --licenses && \
+RUN { echo "y"; yes; } | sdkmanager --sdk_root=$ANDROID_HOME --licenses > /dev/null 2>&1 && \
     sdkmanager --sdk_root=$ANDROID_HOME \
     "platform-tools" \
     "platforms;android-30" \
@@ -55,10 +53,6 @@ RUN avdmanager create avd \
     --abi "arm64-v8a" \
     --device "pixel"
 
-RUN echo "hw.gpu.enabled=yes" >> /root/.android/avd/arm64_api_30.avd/config.ini && \
-    echo "hw.gpu.mode=swiftshader" >> /root/.android/avd/arm64_api_30.avd/config.ini && \
-    echo "hw.cpu.ncore=\${EMULATOR_CORES}" >> /root/.android/avd/arm64_api_30.avd/config.ini
-
 ###############################################################################
 # 3. Startup Script
 ###############################################################################
@@ -71,8 +65,6 @@ adb start-server
 
 export ANDROID_EMU_HEADLESS=1
 export ANDROID_EMU_DISABLE_VULKAN=1
-
-echo "hw.cpu.ncore=$EMULATOR_CORES" >> /root/.android/avd/arm64_api_30.avd/config.ini
 
 emulator -avd arm64_api_30 \
   -no-window \
