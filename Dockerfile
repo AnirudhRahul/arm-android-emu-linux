@@ -37,11 +37,13 @@ COPY ./emulator $ANDROID_HOME/
 
 
 # SDK packages
-RUN { echo "y"; yes; } | sdkmanager --sdk_root=$ANDROID_HOME --licenses > /dev/null 2>&1 && \
+RUN yes | sdkmanager --sdk_root=$ANDROID_HOME --licenses && \
     sdkmanager --sdk_root=$ANDROID_HOME \
+    "emulator" \
     "platform-tools" \
     "platforms;android-30" \
-    "system-images;android-30;aosp_atd;arm64-v8a"
+    "system-images;android-30;aosp_atd;arm64-v8a" \
+    --verbose
 
 # AVD configuration
 RUN mkdir -p /root/.android && \
