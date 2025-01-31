@@ -18,6 +18,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     qemu-system-arm \
     qemu-utils \
     ca-certificates \
+    android-sdk-platform-tools-common \
+    adb \
  && rm -rf /var/lib/apt/lists/*
 
 # Set Java home
