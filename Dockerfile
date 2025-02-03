@@ -109,12 +109,12 @@ sleep 30
 /usr/bin/adb shell input keyevent KEYCODE_MENU
 /usr/bin/adb shell input touchscreen swipe 500 1500 500 0
 
-# Open settings and wait for it to load
-echo "Opening settings..."
-/usr/bin/adb shell am start -n com.android.settings/.Settings
-sleep 10  # Longer wait for settings to open and render
+# List packages and find settings
+echo "Finding settings activity..."
+/usr/bin/adb shell pm list packages -f | grep settings
+/usr/bin/adb shell dumpsys package com.android.settings | grep -A 1 "android.intent.action.MAIN"
 
-# Take screenshot
+# Take screenshot of home screen instead
 echo "Taking screenshot..."
 /usr/bin/adb shell screencap -p /sdcard/screenshot.png
 /usr/bin/adb pull /sdcard/screenshot.png /output/screenshot.png
