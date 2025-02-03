@@ -109,9 +109,9 @@ sleep 30
 /usr/bin/adb shell input keyevent KEYCODE_MENU
 /usr/bin/adb shell input touchscreen swipe 500 1500 500 0
 
-# Open phone app
-echo "Opening phone app..."
-/usr/bin/adb shell am start -n com.android.phone/.PhoneApp
+# Open settings app instead of non-existent phone app
+echo "Opening settings app..."
+/usr/bin/adb shell am start -a android.settings.SETTINGS
 
 sleep 10  # Wait for app to open
 
