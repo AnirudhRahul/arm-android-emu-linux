@@ -109,11 +109,11 @@ sleep 30
 /usr/bin/adb shell input keyevent KEYCODE_MENU
 /usr/bin/adb shell input touchscreen swipe 500 1500 500 0
 
-# Launch Calculator app (which is typically pre-installed)
-echo "Launching Calculator..."
-/usr/bin/adb shell am start -n com.android.calculator2/.Calculator || true
+# List all installed packages
+echo "Listing all installed packages..."
+/usr/bin/adb shell pm list packages
 
-# Give it a moment to launch
+# Give it a moment before screenshot
 sleep 5
 
 # Take screenshot
