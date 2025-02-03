@@ -1,0 +1,9 @@
+services:
+  android-emulator:
+    build: .
+    privileged: true
+    environment:
+      - EMULATOR_MEMORY=4096  # Memory in MB
+      - EMULATOR_CORES=2      # Number of CPU cores
+    volumes:
+      - ./output:/output

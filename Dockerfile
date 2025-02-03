@@ -87,8 +87,8 @@ ${ANDROID_HOME}/emulator/emulator @arm64_api_30 \
  -skip-adb-auth \
  -no-boot-anim \
  -gpu swiftshader \
- -memory 8192 \
- -cores 4 \
+ -memory ${EMULATOR_MEMORY} \
+ -cores ${EMULATOR_CORES} \
  -accel on \
  -no-snapshot-load \
  -qemu -cpu host -machine virt,gic-version=2 &
