@@ -1,118 +1,140 @@
-# -------------------------------------------------------
-# ARM-based Android Emulator Docker Image
-# -------------------------------------------------------
+FROM ubuntu:22.04
+# Environment setup 
+ENV DEBIAN_FRONTEND=noninteractive
+ENV ANDROID_HOME=/opt/android-sdk
+ENV ANDROID_SDK_ROOT=$ANDROID_HOME
+ENV ADB_VENDOR_KEYS=/root/.android
+ENV USE_EMULATOR_X86=0
 
-FROM --platform=linux/arm64 ubuntu:22.04
-
-# ------------------------------------------------------------------------------
-# 1. Environment Setup
-# ------------------------------------------------------------------------------
-ENV DEBIAN_FRONTEND=noninteractive \
-    ANDROID_HOME=/usr/local/android-sdk-linux \
-    ANDROID_SDK_ROOT=/usr/local/android-sdk-linux
-
-ENV PATH=$PATH:$ANDROID_HOME/cmdline-tools/tools/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator
-
-# Install core dependencies & ADB in a single layer
+# Install core dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    openjdk-17-jdk \
-    wget \
-    unzip \
-    qemu-system-arm \
-    qemu-utils \
-    ca-certificates \
-    curl \
-    android-sdk-platform-tools-common \
-    adb \
- && rm -rf /var/lib/apt/lists/*
+   openjdk-17-jdk \
+   wget \
+   unzip \
+   python3 \
+   python3-pip \
+   qemu-system-arm \
+   qemu-utils \
+   libgl1 \
+   libgl1-mesa-dri \
+   libglx-mesa0 \
+   mesa-common-dev \
+   libx11-dev \
+   libxcb-util-dev \
+   libgl1-mesa-glx \
+   curl \
+   git \
+   build-essential \
+   android-tools-adb \
+   android-tools-fastboot \
+&& rm -rf /var/lib/apt/lists/*
 
 # Set Java home
 ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-arm64
-ENV PATH=$PATH:$JAVA_HOME/bin
 
-# ------------------------------------------------------------------------------
-# 2. Android SDK & Emulator Setup
-# ------------------------------------------------------------------------------
-# Copy local cmdline-tools 
-# Original source: https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip
-COPY ./cmdline-tools/ $ANDROID_HOME/cmdline-tools/tools/
+# Copy Android SDK (excluding system-images)
+COPY android-sdk/cmdline-tools ${ANDROID_HOME}/cmdline-tools
+COPY android-sdk/emulator ${ANDROID_HOME}/emulator
+COPY android-sdk/licenses ${ANDROID_HOME}/licenses
+COPY android-sdk/platform-tools ${ANDROID_HOME}/platform-tools
+COPY android-sdk/platforms ${ANDROID_HOME}/platforms
 
-# Copy local emulator
-# Original source: https://ci.android.com/builds/submitted/11382468/emulator-linux_aarch64/latest/sdk-repo-linux_aarch64-emulator-11382468.zip
-COPY ./emulator/ $ANDROID_HOME/emulator/
+# Set permissions
+RUN echo "Setting permissions for Android tools" && \
+   chmod +x ${ANDROID_HOME}/cmdline-tools/tools/bin/* && \
+   chmod +x ${ANDROID_HOME}/emulator/*
 
-# Create and populate package.xml properly
-RUN cd $ANDROID_HOME/emulator && \
-    curl -s "https://chromium.googlesource.com/android_tools/+/refs/heads/main/sdk/emulator/package.xml?format=TEXT" | base64 --decode > package.xml && \
-    MAJOR_VERSION=$(grep 'Pkg.Revision' source.properties | cut -d'=' -f2 | cut -d'.' -f1) && \
-    MINOR_VERSION=$(grep 'Pkg.Revision' source.properties | cut -d'=' -f2 | cut -d'.' -f2) && \
-    MICRO_VERSION=$(grep 'Pkg.Revision' source.properties | cut -d'=' -f2 | cut -d'.' -f3) && \
-    sed -i "s|<major>[0-9]\+</major>|<major>${MAJOR_VERSION}</major>|g" package.xml && \
-    sed -i "s|<minor>[0-9]\+</minor>|<minor>${MINOR_VERSION}</minor>|g" package.xml && \
-    sed -i "s|<micro>[0-9]\+</micro>|<micro>${MICRO_VERSION}</micro>|g" package.xml
+# Set correct PATH for Android tools
+ENV PATH=${ANDROID_HOME}/cmdline-tools/tools/bin:${ANDROID_HOME}/emulator:${JAVA_HOME}/bin:${PATH}
 
-# Create required directories
-RUN mkdir -p $ANDROID_HOME/platforms $ANDROID_HOME/platform-tools
+# Accept licenses and install system image
+RUN yes | sdkmanager --licenses && \
+   sdkmanager "system-images;android-30;aosp_atd;arm64-v8a"
 
-# Accept licenses and install required SDK packages
-RUN yes | sdkmanager --sdk_root=$ANDROID_HOME --licenses && \
-    sdkmanager --sdk_root=$ANDROID_HOME \
-      "platform-tools" \
-      "platforms;android-30" \
-      "system-images;android-30;aosp_atd;arm64-v8a"
+# Create AVD
+RUN yes | avdmanager create avd \
+       -n arm64_api_30 \
+       -k "system-images;android-30;aosp_atd;arm64-v8a" \
+       --device "pixel" \
+       --force
 
-# ------------------------------------------------------------------------------
-# 3. AVD Setup
-# ------------------------------------------------------------------------------
+# Configure advanced features
 RUN mkdir -p /root/.android && \
-    echo "Vulkan = off" >> /root/.android/advancedFeatures.ini && \
-    echo "GLDirectMem = off" >> /root/.android/advancedFeatures.ini && \
-    echo "metrics.allow-host = off" >> /root/.android/advancedFeatures.ini && \
-    mkdir -p /root/.android/avd/arm_pixel.avd && \
-    avdmanager create avd \
-      --force \
-      --name "arm_pixel" \
-      --package "system-images;android-30;aosp_atd;arm64-v8a" \
-      --abi "arm64-v8a" \
-      --device "pixel"
-# ------------------------------------------------------------------------------
-# 4. Startup Script
-# ------------------------------------------------------------------------------
+   echo "Vulkan = off" >> /root/.android/advancedFeatures.ini && \
+   echo "GLDirectMem = off" >> /root/.android/advancedFeatures.ini
+
+# Add start script
 RUN cat <<'EOF' > /root/start-emulator.sh
 #!/usr/bin/env bash
 set -e
-# Restart ADB server
-adb kill-server || true
-adb start-server
-
-# Configure headless emulator environment
+# Configure environment for headless ARM emulator
 export ANDROID_EMU_HEADLESS=1
 export ANDROID_EMU_DISABLE_VULKAN=1
-
-# Clean up any existing AVD locks
-rm -f /root/.android/avd/arm_pixel.avd/*.lock
-
-# Launch the emulator in the background
-emulator -avd arm_pixel \
-  -no-window \
-  -no-audio \
-  -ports 5554,5555 \
-  -skip-adb-auth \
-  -no-boot-anim \
-  -gpu swiftshader \
-  -accel on \
-  -memory 2048 \
-  -cores 4 \
-  -wipe-data \
-  -qemu -cpu host -machine virt,gic-version=2 &
-
-# Wait until the device appears
-while [ -z "$(adb devices | grep -v List)" ]; do
-  sleep 2
+export ANDROID_OPENGLES_ANGLE=1
+export ANDROID_EMU_DEBUG=1
+export ANDROID_OPENGLES_ANGLE_DEBUG=1
+export LIBGL_DEBUG=verbose
+export LIBGL_ALWAYS_SOFTWARE=1
+export SWIFTSHADER_USE_CPU=1
+export ANDROID_EMU_DISABLE_GPU=1
+# Start ADB
+/usr/bin/adb start-server
+# Launch the emulator
+${ANDROID_HOME}/emulator/emulator @arm64_api_30 \
+ -no-window \
+ -no-audio \
+ -ports 5554,5555 \
+ -skip-adb-auth \
+ -no-boot-anim \
+ -gpu swiftshader \
+ -memory 8192 \
+ -cores 4 \
+ -accel on \
+ -no-snapshot-load \
+ -qemu -cpu host -machine virt,gic-version=2 &
+# Wait for device and boot completion
+echo "Waiting for emulator..."
+/usr/bin/adb wait-for-device
+while [ "$(/usr/bin/adb shell getprop sys.boot_completed 2>/dev/null)" != "1" ]; do
+   sleep 2
 done
-EOF
+echo "Device ready!"
+/usr/bin/adb devices
 
+# Wait for UI to be fully loaded
+sleep 30
+
+# Wake up device and unlock screen
+/usr/bin/adb shell input keyevent KEYCODE_WAKEUP
+/usr/bin/adb shell input keyevent KEYCODE_MENU
+/usr/bin/adb shell input touchscreen swipe 500 1500 500 0
+
+# Open settings and wait for it to load
+echo "Opening settings..."
+/usr/bin/adb shell am start -n com.android.settings/.Settings
+sleep 10  # Longer wait for settings to open and render
+
+# Take screenshot
+echo "Taking screenshot..."
+/usr/bin/adb shell screencap -p /sdcard/screenshot.png
+/usr/bin/adb pull /sdcard/screenshot.png /output/screenshot.png
+
+# Verify screenshot size
+if [ -f "/output/screenshot.png" ]; then
+   echo "Screenshot saved: $(ls -l /output/screenshot.png)"
+else
+   echo "Screenshot failed!"
+fi
+
+# Shutdown emulator and ADB gracefully
+echo "Shutting down..."
+/usr/bin/adb emu kill
+/usr/bin/adb kill-server
+exit 0
+EOF
 RUN chmod +x /root/start-emulator.sh
 
-# Set the entrypoint to run the startup script
+# Create output directory for volume mount
+VOLUME ["/output"]
+
 ENTRYPOINT ["/root/start-emulator.sh"]
