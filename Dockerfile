@@ -109,12 +109,11 @@ sleep 30
 /usr/bin/adb shell input keyevent KEYCODE_MENU
 /usr/bin/adb shell input touchscreen swipe 500 1500 500 0
 
-# List all installed packages
-echo "Listing all installed packages..."
-/usr/bin/adb shell pm list packages
+# Open phone app
+echo "Opening phone app..."
+/usr/bin/adb shell am start -n com.android.phone/.PhoneApp
 
-# Give it a moment before screenshot
-sleep 5
+sleep 10  # Wait for app to open
 
 # Take screenshot
 echo "Taking screenshot..."
