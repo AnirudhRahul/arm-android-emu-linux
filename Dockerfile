@@ -63,6 +63,9 @@ RUN mkdir -p /root/.android && \
    echo "Vulkan = off" >> /root/.android/advancedFeatures.ini && \
    echo "GLDirectMem = off" >> /root/.android/advancedFeatures.ini
 
+# Add OpenCalc download earlier in the Dockerfile
+RUN wget https://github.com/Darkempire78/OpenCalc/releases/download/v3.1.4/OpenCalc.v3.1.4.apk -O /root/OpenCalc.apk
+
 # Add start script
 RUN cat <<'EOF' > /root/start-emulator.sh
 #!/usr/bin/env bash
@@ -109,11 +112,15 @@ sleep 30
 /usr/bin/adb shell input keyevent KEYCODE_MENU
 /usr/bin/adb shell input touchscreen swipe 500 1500 500 0
 
-# Open settings app instead of non-existent phone app
-echo "Opening settings app..."
-/usr/bin/adb shell am start -a android.settings.SETTINGS
+# Install OpenCalc APK
+echo "Installing OpenCalc..."
+/usr/bin/adb install /root/OpenCalc.apk
 
-sleep 10  # Wait for app to open
+# Launch OpenCalc (package name: com.darkempire78.opencalculator)
+echo "Launching OpenCalc..."
+/usr/bin/adb shell am start -n com.darkempire78.opencalculator/.MainActivity
+
+sleep 5  # Wait for app to open
 
 # Take screenshot
 echo "Taking screenshot..."
