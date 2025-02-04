@@ -51,12 +51,13 @@ ENV PATH=${ANDROID_HOME}/cmdline-tools/tools/bin:${ANDROID_HOME}/emulator:${JAVA
 RUN yes | sdkmanager --licenses && \
    sdkmanager "system-images;android-30;aosp_atd;arm64-v8a"
 
-# Create AVD
+# Create AVD with snapshot disabled
 RUN yes | avdmanager create avd \
-       -n arm64_api_30 \
-       -k "system-images;android-30;aosp_atd;arm64-v8a" \
-       --device "pixel" \
-       --force
+    -n arm64_api_30 \
+    -k "system-images;android-30;aosp_atd;arm64-v8a" \
+    --device "pixel" \
+    --force && \
+    echo "snapshot.present=false" >> /root/.android/avd/arm64_api_30.avd/config.ini
 
 # Configure advanced features
 RUN mkdir -p /root/.android && \
@@ -70,6 +71,9 @@ RUN wget https://github.com/Darkempire78/OpenCalc/releases/download/v3.1.4/OpenC
 RUN cat <<'EOF' > /root/start-emulator.sh
 #!/usr/bin/env bash
 set -e
+# Clean up any previous lock files
+rm -f /root/.android/avd/arm64_api_30.avd/*.lock
+
 # Configure environment for headless ARM emulator
 export ANDROID_EMU_HEADLESS=1
 export ANDROID_EMU_DISABLE_VULKAN=1
@@ -82,8 +86,11 @@ export SWIFTSHADER_USE_CPU=1
 export ANDROID_EMU_DISABLE_GPU=1
 # Start ADB
 /usr/bin/adb start-server
-# Launch the emulator
+# Launch the emulator with explicit snapshot control
 ${ANDROID_HOME}/emulator/emulator @arm64_api_30 \
+ -no-snapshot \
+ -no-snapshot-save \
+ -no-snapshot-load \
  -no-window \
  -no-audio \
  -ports 5554,5555 \
@@ -93,7 +100,6 @@ ${ANDROID_HOME}/emulator/emulator @arm64_api_30 \
  -memory ${EMULATOR_MEMORY} \
  -cores ${EMULATOR_CORES} \
  -accel on \
- -no-snapshot \
  -qemu -cpu host -machine virt,gic-version=2 &
 # Wait for device and boot completion
 echo "Waiting for emulator..."
