@@ -89,11 +89,11 @@ ${ANDROID_HOME}/emulator/emulator @arm64_api_30 \
  -ports 5554,5555 \
  -skip-adb-auth \
  -no-boot-anim \
- -gpu swiftshader \
+ -gpu swiftshader_indirect \
  -memory ${EMULATOR_MEMORY} \
  -cores ${EMULATOR_CORES} \
  -accel on \
- -no-snapshot-load \
+ -no-snapshot \
  -qemu -cpu host -machine virt,gic-version=2 &
 # Wait for device and boot completion
 echo "Waiting for emulator..."
