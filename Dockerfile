@@ -116,9 +116,9 @@ sleep 30
 echo "Installing OpenCalc..."
 /usr/bin/adb install /root/OpenCalc.apk
 
-# Launch OpenCalc (package name: com.darkempire78.opencalculator)
+# Launch OpenCalc (corrected package and activity name based on manifest)
 echo "Launching OpenCalc..."
-/usr/bin/adb shell am start -n com.darkempire78.opencalculator/.MainActivity
+/usr/bin/adb shell am start -n com.darkempire78.opencalculator/.activities.MainActivity
 
 sleep 5  # Wait for app to open
 
