@@ -91,6 +91,7 @@ ${ANDROID_HOME}/emulator/emulator @arm64_api_30 \
  -no-snapshot \
  -no-snapshot-save \
  -no-snapshot-load \
+ -wipe-data \
  -no-window \
  -no-audio \
  -ports 5554,5555 \
