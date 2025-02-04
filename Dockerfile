@@ -47,14 +47,14 @@ RUN echo "Setting permissions for Android tools" && \
 # Set correct PATH for Android tools
 ENV PATH=${ANDROID_HOME}/cmdline-tools/tools/bin:${ANDROID_HOME}/emulator:${JAVA_HOME}/bin:${PATH}
 
-# Accept licenses and install system image (using google_apis instead of aosp_atd)
+# Accept licenses and install system image
 RUN yes | sdkmanager --licenses && \
-   sdkmanager "system-images;android-30;google_apis;arm64-v8a"
+   sdkmanager "system-images;android-30;aosp_atd;arm64-v8a"
 
-# Create AVD (using the google_apis system image)
+# Create AVD
 RUN yes | avdmanager create avd \
        -n arm64_api_30 \
-       -k "system-images;android-30;google_apis;arm64-v8a" \
+       -k "system-images;android-30;aosp_atd;arm64-v8a" \
        --device "pixel" \
        --force
 
@@ -100,26 +100,33 @@ while [ "$(/usr/bin/adb shell getprop sys.boot_completed 2>/dev/null)" != "1" ];
 done
 echo "Device ready!"
 /usr/bin/adb devices
+
 # Wait for UI to be fully loaded
 sleep 30
+
 # Wake up device and unlock screen
 /usr/bin/adb shell input keyevent KEYCODE_WAKEUP
 /usr/bin/adb shell input keyevent KEYCODE_MENU
 /usr/bin/adb shell input touchscreen swipe 500 1500 500 0
-# Open the Settings app using an explicit component (which now exists)
-echo "Opening Settings app..."
-/usr/bin/adb shell am start -n com.android.settings/.Settings
+
+# Open settings app instead of non-existent phone app
+echo "Opening settings app..."
+/usr/bin/adb shell am start -a android.settings.SETTINGS
+
 sleep 10  # Wait for app to open
+
 # Take screenshot
 echo "Taking screenshot..."
 /usr/bin/adb shell screencap -p /sdcard/screenshot.png
 /usr/bin/adb pull /sdcard/screenshot.png /output/screenshot.png
+
 # Verify screenshot size
 if [ -f "/output/screenshot.png" ]; then
    echo "Screenshot saved: $(ls -l /output/screenshot.png)"
 else
    echo "Screenshot failed!"
 fi
+
 # Shutdown emulator and ADB gracefully
 echo "Shutting down..."
 /usr/bin/adb emu kill
